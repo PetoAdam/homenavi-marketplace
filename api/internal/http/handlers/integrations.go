@@ -116,14 +116,27 @@ func (h IntegrationsHandler) PublishOIDC(w http.ResponseWriter, r *http.Request)
 
 	var req models.PublishRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("publish-oidc invalid json: %v", err)
 		writeError(w, http.StatusBadRequest, "invalid json")
 		return
 	}
+	log.Printf(
+		"publish-oidc request fields id=%q version=%q release_tag=%q listen_path=%q repo_url=%q manifest_url=%q image=%q",
+		req.ID,
+		req.Version,
+		req.ReleaseTag,
+		req.ListenPath,
+		req.RepoURL,
+		req.ManifestURL,
+		req.Image,
+	)
 	if err := validatePublishRequest(req); err != nil {
+		log.Printf("publish-oidc request validation failed: %v", err)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if err := validateOIDCRequest(req, claims, tag); err != nil {
+		log.Printf("publish-oidc oidc validation failed: %v", err)
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -147,8 +160,27 @@ func validatePublishRequest(req models.PublishRequest) error {
 	req.ListenPath = strings.TrimSpace(req.ListenPath)
 	req.ManifestURL = strings.TrimSpace(req.ManifestURL)
 	req.Image = strings.TrimSpace(req.Image)
-	if req.ID == "" || req.Name == "" || req.Version == "" || req.ListenPath == "" || req.ManifestURL == "" || req.Image == "" {
-		return errField("id, name, version, listen_path, manifest_url, image are required")
+	missing := make([]string, 0, 6)
+	if req.ID == "" {
+		missing = append(missing, "id")
+	}
+	if req.Name == "" {
+		missing = append(missing, "name")
+	}
+	if req.Version == "" {
+		missing = append(missing, "version")
+	}
+	if req.ListenPath == "" {
+		missing = append(missing, "listen_path")
+	}
+	if req.ManifestURL == "" {
+		missing = append(missing, "manifest_url")
+	}
+	if req.Image == "" {
+		missing = append(missing, "image")
+	}
+	if len(missing) > 0 {
+		return errField("missing required fields: " + strings.Join(missing, ", "))
 	}
 	if len(req.Images) > 5 {
 		return errField("images must be <= 5 items")
@@ -191,24 +223,39 @@ func tagFromClaims(claims OIDCClaims, prefix string) (string, error) {
 func validateOIDCRequest(req models.PublishRequest, claims OIDCClaims, tag string) error {
 	repo := strings.TrimSpace(claims.Repository)
 	if repo == "" {
+		log.Printf("publish-oidc missing repository claim")
 		return errField("oidc repository claim missing")
 	}
+	log.Printf(
+		"publish-oidc oidc claims repo=%q ref=%q ref_type=%q sha=%q workflow=%q job_workflow_ref=%q actor=%q",
+		claims.Repository,
+		claims.Ref,
+		claims.RefType,
+		claims.SHA,
+		claims.Workflow,
+		claims.JobWorkflowRef,
+		claims.Actor,
+	)
 
 	if req.Version != tag {
+		log.Printf("publish-oidc version mismatch: version=%q tag=%q", req.Version, tag)
 		return errField("version must match the tag")
 	}
 	if req.ReleaseTag != tag {
+		log.Printf("publish-oidc release_tag mismatch: release_tag=%q tag=%q", req.ReleaseTag, tag)
 		return errField("release_tag must match the tag")
 	}
 
 	repoURL := normalizeRepoURL(req.RepoURL)
 	expectedRepoURL := normalizeRepoURL("https://github.com/" + repo)
 	if repoURL == "" || repoURL != expectedRepoURL {
+		log.Printf("publish-oidc repo_url mismatch: repo_url=%q expected=%q", repoURL, expectedRepoURL)
 		return errField("repo_url must match the GitHub repository")
 	}
 
 	rawBase := "https://raw.githubusercontent.com/" + repo + "/" + tag + "/"
 	if !strings.HasPrefix(req.ManifestURL, rawBase) {
+		log.Printf("publish-oidc manifest_url mismatch: manifest_url=%q expected_prefix=%q", req.ManifestURL, rawBase)
 		return errField("manifest_url must point to the tag in the GitHub repo")
 	}
 
