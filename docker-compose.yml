@@ -55,8 +55,8 @@ services:
       context: ./web
     restart: unless-stopped
     environment:
-      INTERNAL_API_BASE: http://nginx/api
-      NEXT_PUBLIC_API_BASE: /api
+      INTERNAL_API_BASE: ${INTERNAL_API_BASE:-http://nginx/api}
+      NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-/api}
     depends_on:
       - api
 
