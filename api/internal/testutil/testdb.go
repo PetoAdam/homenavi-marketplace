@@ -24,7 +24,12 @@ func StartPostgres(t *testing.T) (*pgxpool.Pool, func()) {
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),
 		testcontainers.WithImage("postgres:15-alpine"),
-		testcontainers.WithWaitStrategy(wait.ForListeningPort("5432/tcp").WithStartupTimeout(60*time.Second)),
+		testcontainers.WithWaitStrategy(
+			wait.ForAll(
+				wait.ForListeningPort("5432/tcp"),
+				wait.ForLog("database system is ready to accept connections"),
+			).WithStartupTimeout(90*time.Second),
+		),
 	)
 	if err != nil {
 		t.Fatalf("start postgres: %v", err)
@@ -36,10 +41,24 @@ func StartPostgres(t *testing.T) (*pgxpool.Pool, func()) {
 		t.Fatalf("connection string: %v", err)
 	}
 
-	pool, err := db.Connect(conn)
-	if err != nil {
+	var pool *pgxpool.Pool
+	var lastErr error
+	for attempt := 0; attempt < 10; attempt++ {
+		pool, lastErr = db.Connect(conn)
+		if lastErr == nil {
+			pingErr := pool.Ping(ctx)
+			if pingErr == nil {
+				lastErr = nil
+				break
+			}
+			pool.Close()
+			lastErr = pingErr
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	if lastErr != nil {
 		_ = container.Terminate(ctx)
-		t.Fatalf("db connect: %v", err)
+		t.Fatalf("db connect: %v", lastErr)
 	}
 
 	if err := db.Migrate(ctx, pool); err != nil {
