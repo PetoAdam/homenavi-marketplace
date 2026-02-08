@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -27,8 +28,48 @@ type OIDCClaims struct {
 	Workflow        string `json:"workflow"`
 	JobWorkflowRef  string `json:"job_workflow_ref"`
 	Actor           string `json:"actor"`
-	RunID           int64  `json:"run_id"`
-	RunAttempt      int64  `json:"run_attempt"`
+	RunID           ClaimInt64 `json:"run_id"`
+	RunAttempt      ClaimInt64 `json:"run_attempt"`
+}
+
+type ClaimInt64 int64
+
+func (c *ClaimInt64) UnmarshalJSON(data []byte) error {
+	if string(data) == "null" {
+		*c = 0
+		return nil
+	}
+
+	var num json.Number
+	if err := json.Unmarshal(data, &num); err == nil {
+		value, err := num.Int64()
+		if err != nil {
+			floatValue, floatErr := num.Float64()
+			if floatErr != nil {
+				return err
+			}
+			value = int64(floatValue)
+		}
+		*c = ClaimInt64(value)
+		return nil
+	}
+
+	var strValue string
+	if err := json.Unmarshal(data, &strValue); err == nil {
+		strValue = strings.TrimSpace(strValue)
+		if strValue == "" {
+			*c = 0
+			return nil
+		}
+		value, err := strconv.ParseInt(strValue, 10, 64)
+		if err != nil {
+			return err
+		}
+		*c = ClaimInt64(value)
+		return nil
+	}
+
+	return errors.New("invalid numeric claim")
 }
 
 type OIDCVerifier interface {
