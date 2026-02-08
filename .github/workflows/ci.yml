@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TESTCONTAINERS_RYUK_DISABLED: "true"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v4
