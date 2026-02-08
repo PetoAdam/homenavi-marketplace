@@ -7,11 +7,13 @@ import IntegrationIcon from './IntegrationIcon';
 type Props = {
   integration: Integration;
   index?: number;
+  variant?: "default" | "featured";
 };
 
-export default function IntegrationCard({ integration, index = 0 }: Props) {
+export default function IntegrationCard({ integration, index = 0, variant = "default" }: Props) {
   const cover = integration.assets?.icon || integration.images?.[0] || '';
   const router = useRouter();
+  const isFeatured = variant === "featured";
 
   const versionLabel = integration.version.startsWith('v')
     ? integration.version.slice(1)
@@ -23,7 +25,9 @@ export default function IntegrationCard({ integration, index = 0 }: Props) {
 
   return (
     <div
-      className="fade-up group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-panel/70 p-5 shadow-soft backdrop-blur transition-transform duration-300 hover:-translate-y-1"
+      className={`fade-up group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-panel/70 p-5 shadow-soft backdrop-blur transition-transform duration-300 hover:-translate-y-1 ${
+        isFeatured ? "md:p-6" : ""
+      }`}
       style={{ animationDelay: `${index * 60}ms` }}
       role="button"
       tabIndex={0}
@@ -36,19 +40,27 @@ export default function IntegrationCard({ integration, index = 0 }: Props) {
       }}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      <div className="relative flex items-start justify-between gap-4">
+      <div className={`relative flex items-start justify-between gap-4 ${isFeatured ? "md:gap-6" : ""}`}>
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/40">{integration.publisher || 'Community'}</p>
-          <h3 className="text-lg font-semibold text-white">{integration.name}</h3>
+          <h3 className={`${isFeatured ? "text-xl" : "text-lg"} font-semibold text-white`}>{integration.name}</h3>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60">
             <span className="rounded-full bg-white/10 px-2 py-1">Version {versionLabel}</span>
           </div>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
-          <IntegrationIcon icon={cover} fallback={integration.name} />
+        <div
+          className={`flex items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5 ${
+            isFeatured ? "h-16 w-16" : "h-12 w-12"
+          }`}
+        >
+          <IntegrationIcon
+            icon={cover}
+            fallback={integration.name}
+            className={isFeatured ? "h-8 w-8 text-white/80" : undefined}
+          />
         </div>
       </div>
-      <p className="relative mt-4 line-clamp-3 text-sm text-white/70">
+      <p className={`relative mt-4 ${isFeatured ? "line-clamp-4" : "line-clamp-3"} text-sm text-white/70`}>
         {integration.description || 'No description provided.'}
       </p>
       <div className="relative mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
@@ -58,6 +70,12 @@ export default function IntegrationCard({ integration, index = 0 }: Props) {
         ) : (
           <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">Community</span>
         )}
+      </div>
+      <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs text-white/60">
+        <span className="rounded-full bg-white/5 px-2 py-1">{integration.downloads} downloads</span>
+        {integration.featured ? (
+          <span className="rounded-full bg-accent/20 px-2 py-1 text-accent">Featured</span>
+        ) : null}
       </div>
       <div className="relative mt-4 flex flex-wrap items-center gap-3 text-xs">
         {integration.repo_url ? (

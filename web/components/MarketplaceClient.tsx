@@ -10,20 +10,26 @@ type Props = {
 
 export default function MarketplaceClient({ integrations }: Props) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<"all" | "verified" | "community">("all");
-  const [sort, setSort] = useState<"name" | "version">("name");
+  const [mode, setMode] = useState<"discover" | "trending" | "downloads">("discover");
+  const [filter, setFilter] = useState<"all" | "featured" | "verified" | "community">("all");
+  const [sort, setSort] = useState<"name" | "version" | "downloads" | "trending">("trending");
 
   const stats = useMemo(() => {
     const verified = integrations.filter((item) => item.verified).length;
     const community = integrations.length - verified;
-    return { total: integrations.length, verified, community };
+    const featured = integrations.filter((item) => item.featured).length;
+    return { total: integrations.length, verified, community, featured };
   }, [integrations]);
+
+  const featuredItems = useMemo(() => integrations.filter((item) => item.featured), [integrations]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     let items = integrations;
 
-    if (filter === "verified") {
+    if (filter === "featured") {
+      items = items.filter((item) => item.featured);
+    } else if (filter === "verified") {
       items = items.filter((item) => item.verified);
     } else if (filter === "community") {
       items = items.filter((item) => !item.verified);
@@ -41,8 +47,12 @@ export default function MarketplaceClient({ integrations }: Props) {
 
     if (sort === "name") {
       items = [...items].sort((a, b) => a.name.localeCompare(b.name));
-    } else {
+    } else if (sort === "version") {
       items = [...items].sort((a, b) => b.version.localeCompare(a.version, undefined, { numeric: true }));
+    } else if (sort === "downloads") {
+      items = [...items].sort((a, b) => b.downloads - a.downloads);
+    } else {
+      items = [...items].sort((a, b) => b.trending_score - a.trending_score);
     }
 
     return items;
@@ -50,7 +60,32 @@ export default function MarketplaceClient({ integrations }: Props) {
 
   return (
     <section className="mx-auto mt-10 max-w-6xl space-y-8">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-full border border-white/10 bg-panel/60 p-2 shadow-soft">
+        {["discover", "trending", "downloads"].map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => {
+              setMode(item as "discover" | "trending" | "downloads");
+              if (item === "downloads") {
+                setSort("downloads");
+              } else if (item === "trending") {
+                setSort("trending");
+              } else {
+                setSort("name");
+              }
+            }}
+            className={`rounded-full px-4 py-2 text-xs uppercase tracking-[0.25em] transition ${
+              mode === item
+                ? "bg-accent/30 text-accent"
+                : "text-white/60 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            {item === "downloads" ? "Most downloaded" : item}
+          </button>
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
           <div className="text-xs uppercase tracking-[0.3em] text-white/40">Total</div>
           <div className="mt-2 text-2xl font-semibold text-white">{stats.total}</div>
@@ -63,7 +98,39 @@ export default function MarketplaceClient({ integrations }: Props) {
           <div className="text-xs uppercase tracking-[0.3em] text-white/40">Community</div>
           <div className="mt-2 text-2xl font-semibold text-white">{stats.community}</div>
         </div>
+        <div className="rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
+          <div className="text-xs uppercase tracking-[0.3em] text-white/40">Featured</div>
+          <div className="mt-2 text-2xl font-semibold text-white">{stats.featured}</div>
+        </div>
       </div>
+
+      {featuredItems.length > 0 ? (
+        <div className="rounded-3xl border border-white/10 bg-panel/50 p-6 shadow-soft">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs uppercase tracking-[0.3em] text-white/40">Featured</div>
+              <div className="mt-2 text-lg font-semibold text-white">Spotlight integrations</div>
+            </div>
+            <button
+              type="button"
+              className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/60"
+              onClick={() => setFilter("featured")}
+            >
+              View all
+            </button>
+          </div>
+          <div className="mt-5 grid gap-6 md:grid-cols-2">
+            {featuredItems.map((integration, index) => (
+              <IntegrationCard
+                key={`${integration.id}-${integration.version}`}
+                integration={integration}
+                index={index}
+                variant="featured"
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
         <div className="flex flex-1 flex-wrap items-center gap-3">
@@ -77,11 +144,11 @@ export default function MarketplaceClient({ integrations }: Props) {
             />
           </div>
           <div className="flex items-center gap-2">
-            {["all", "verified", "community"].map((item) => (
+            {["all", "featured", "verified", "community"].map((item) => (
               <button
                 key={item}
                 type="button"
-                onClick={() => setFilter(item as "all" | "verified" | "community")}
+                onClick={() => setFilter(item as "all" | "featured" | "verified" | "community")}
                 className={`rounded-full border px-3 py-1 text-xs uppercase tracking-[0.2em] transition ${
                   filter === item
                     ? "border-accent bg-accent/20 text-accent"
@@ -98,10 +165,12 @@ export default function MarketplaceClient({ integrations }: Props) {
           <select
             className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80"
             value={sort}
-            onChange={(event) => setSort(event.target.value as "name" | "version")}
+            onChange={(event) => setSort(event.target.value as "name" | "version" | "downloads" | "trending")}
           >
             <option value="name">Name</option>
             <option value="version">Version</option>
+            <option value="downloads">Most downloaded</option>
+            <option value="trending">Trending</option>
           </select>
         </div>
       </div>

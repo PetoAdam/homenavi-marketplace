@@ -23,7 +23,9 @@ func (h IntegrationsHandler) List(w http.ResponseWriter, r *http.Request) {
 	if strings.EqualFold(r.URL.Query().Get("latest"), "false") {
 		latestOnly = false
 	}
-	items, err := store.ListIntegrations(r.Context(), h.Pool, latestOnly)
+	featuredOnly := strings.EqualFold(r.URL.Query().Get("featured"), "true")
+	sortBy := r.URL.Query().Get("sort")
+	items, err := store.ListIntegrations(r.Context(), h.Pool, latestOnly, sortBy, featuredOnly)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list integrations")
 		return
@@ -58,6 +60,20 @@ func (h IntegrationsHandler) Versions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"versions": items})
+}
+
+func (h IntegrationsHandler) IncrementDownloads(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		writeError(w, http.StatusBadRequest, "missing id")
+		return
+	}
+	item, err := store.IncrementDownloads(r.Context(), h.Pool, id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "integration not found")
+		return
+	}
+	writeJSON(w, http.StatusOK, item)
 }
 
 func (h IntegrationsHandler) Publish(w http.ResponseWriter, r *http.Request) {

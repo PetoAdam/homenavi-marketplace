@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import ImageGallery from '../../../components/ImageGallery';
 import IntegrationIcon from '../../../components/IntegrationIcon';
 import { marketplaceApi } from '../../../lib/api';
 
@@ -34,6 +35,12 @@ export default async function IntegrationPage({ params }: PageProps) {
             <h1 className="text-4xl font-semibold text-white">{integration.name}</h1>
             <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
               <span className="rounded-full bg-white/10 px-3 py-1">Version {versionLabel}</span>
+              <span className="rounded-full bg-white/10 px-3 py-1">
+                {integration.downloads} downloads
+              </span>
+              {integration.featured ? (
+                <span className="rounded-full bg-accent/20 px-3 py-1 text-accent">Featured</span>
+              ) : null}
               {integration.verified ? (
                 <span className="rounded-full bg-accent/20 px-3 py-1 text-accent">Verified</span>
               ) : (
@@ -98,18 +105,7 @@ export default async function IntegrationPage({ params }: PageProps) {
           </div>
         </section>
 
-        {integration.images?.length ? (
-          <section className="rounded-2xl border border-white/10 bg-panel/60 p-6 shadow-soft">
-            <h2 className="text-lg font-semibold text-white">Gallery</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {integration.images.map((src) => (
-                <div key={src} className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                  <img src={src} alt="" className="h-full w-full object-cover" />
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+        {integration.images?.length ? <ImageGallery images={integration.images} /> : null}
       </section>
     </main>
   );

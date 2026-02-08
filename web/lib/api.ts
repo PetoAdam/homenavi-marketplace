@@ -13,6 +13,9 @@ export type Integration = {
   publisher?: string;
   verified: boolean;
   latest: boolean;
+  downloads: number;
+  trending_score: number;
+  featured: boolean;
 };
 
 const getApiBase = () => {

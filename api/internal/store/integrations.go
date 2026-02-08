@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,15 +15,32 @@ import (
 var ErrListenPathInUse = errors.New("listen_path already in use")
 var ErrNameInUse = errors.New("name already in use")
 
-func ListIntegrations(ctx context.Context, pool *pgxpool.Pool, latestOnly bool) ([]models.Integration, error) {
+func ListIntegrations(ctx context.Context, pool *pgxpool.Pool, latestOnly bool, sortBy string, featuredOnly bool) ([]models.Integration, error) {
 	query := `
 SELECT id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
-       repo_url, release_tag, publisher, verified, latest, created_at, updated_at
+	   repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
 FROM integrations`
+	clauses := []string{}
 	if latestOnly {
-		query += " WHERE latest = true"
+		clauses = append(clauses, "latest = true")
 	}
-	query += " ORDER BY name ASC"
+	if featuredOnly {
+		clauses = append(clauses, "featured = true")
+	}
+	if len(clauses) > 0 {
+		query += " WHERE " + strings.Join(clauses, " AND ")
+	}
+
+	switch strings.ToLower(strings.TrimSpace(sortBy)) {
+	case "downloads":
+		query += " ORDER BY downloads DESC, name ASC"
+	case "trending":
+		query += " ORDER BY trending_score DESC, name ASC"
+	case "version":
+		query += " ORDER BY version DESC"
+	default:
+		query += " ORDER BY name ASC"
+	}
 
 	rows, err := pool.Query(ctx, query)
 	if err != nil {
@@ -44,7 +62,7 @@ FROM integrations`
 func GetIntegration(ctx context.Context, pool *pgxpool.Pool, id string, version string) (*models.Integration, error) {
 	query := `
 SELECT id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
-       repo_url, release_tag, publisher, verified, latest, created_at, updated_at
+	   repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
 FROM integrations
 WHERE id = $1`
 	args := []any{id}
@@ -65,7 +83,7 @@ WHERE id = $1`
 func ListVersions(ctx context.Context, pool *pgxpool.Pool, id string) ([]models.Integration, error) {
 	query := `
 SELECT id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
-       repo_url, release_tag, publisher, verified, latest, created_at, updated_at
+	   repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
 FROM integrations
 WHERE id = $1
 ORDER BY created_at DESC`
@@ -85,6 +103,51 @@ ORDER BY created_at DESC`
 		out = append(out, item)
 	}
 	return out, rows.Err()
+}
+
+func IncrementDownloads(ctx context.Context, pool *pgxpool.Pool, id string) (*models.Integration, error) {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	if _, err := tx.Exec(ctx, `
+INSERT INTO integration_download_events (integration_id)
+VALUES ($1)
+`, id); err != nil {
+		return nil, err
+	}
+
+	row := tx.QueryRow(ctx, `
+WITH stats AS (
+  SELECT COUNT(*)::BIGINT AS downloads_7d
+  FROM integration_download_events
+  WHERE integration_id = $1
+    AND created_at >= NOW() - INTERVAL '7 days'
+)
+UPDATE integrations
+SET downloads = downloads + 1,
+    trending_score = stats.downloads_7d,
+    updated_at = NOW()
+FROM stats
+WHERE id = $1 AND latest = true
+RETURNING id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
+          repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
+`, id)
+
+	item, err := scanIntegration(row)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &item, nil
 }
 
 func PublishIntegration(ctx context.Context, pool *pgxpool.Pool, req models.PublishRequest, verified bool) (*models.Integration, error) {
@@ -126,12 +189,17 @@ func PublishIntegration(ctx context.Context, pool *pgxpool.Pool, req models.Publ
 		return nil, err
 	}
 
+	stats := integrationStats{Downloads: 0, TrendingScore: 0, Featured: false}
+	if current, err := getLatestStats(ctx, pool, req.ID); err == nil && current != nil {
+		stats = *current
+	}
+
 	_, err = tx.Exec(ctx, `
 INSERT INTO integrations (
   id, version, name, description, manifest_url, manifest, image, images, assets, listen_path,
-  repo_url, release_tag, publisher, verified, latest
+  repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured
 ) VALUES (
-  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true
+  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true,$15,$16,$17
 )
 ON CONFLICT (id, version) DO UPDATE SET
   name = EXCLUDED.name,
@@ -146,6 +214,9 @@ ON CONFLICT (id, version) DO UPDATE SET
   release_tag = EXCLUDED.release_tag,
   publisher = EXCLUDED.publisher,
   verified = EXCLUDED.verified,
+  downloads = EXCLUDED.downloads,
+  trending_score = EXCLUDED.trending_score,
+  featured = EXCLUDED.featured,
   latest = true,
   updated_at = NOW()
 `,
@@ -163,6 +234,9 @@ ON CONFLICT (id, version) DO UPDATE SET
 		req.ReleaseTag,
 		req.Publisher,
 		verified,
+		stats.Downloads,
+		stats.TrendingScore,
+		stats.Featured,
 	)
 	if err != nil {
 		return nil, err
@@ -204,6 +278,25 @@ type rowScanner interface {
 	Scan(dest ...any) error
 }
 
+type integrationStats struct {
+	Downloads     int64
+	TrendingScore float64
+	Featured      bool
+}
+
+func getLatestStats(ctx context.Context, pool *pgxpool.Pool, id string) (*integrationStats, error) {
+	row := pool.QueryRow(ctx, `
+SELECT downloads, trending_score, featured
+FROM integrations
+WHERE id = $1 AND latest = true
+`, id)
+	var stats integrationStats
+	if err := row.Scan(&stats.Downloads, &stats.TrendingScore, &stats.Featured); err != nil {
+		return nil, err
+	}
+	return &stats, nil
+}
+
 func scanIntegration(row rowScanner) (models.Integration, error) {
 	var item models.Integration
 	var manifestJSON []byte
@@ -226,6 +319,9 @@ func scanIntegration(row rowScanner) (models.Integration, error) {
 		&item.Publisher,
 		&item.Verified,
 		&item.Latest,
+		&item.Downloads,
+		&item.Trending,
+		&item.Featured,
 		&item.CreatedAt,
 		&item.UpdatedAt,
 	)

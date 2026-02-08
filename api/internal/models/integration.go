@@ -18,6 +18,9 @@ type Integration struct {
 	Publisher   string            `json:"publisher,omitempty"`
 	Verified    bool              `json:"verified"`
 	Latest      bool              `json:"latest"`
+	Downloads   int64             `json:"downloads"`
+	Trending    float64           `json:"trending_score"`
+	Featured    bool              `json:"featured"`
 	CreatedAt   time.Time         `json:"created_at"`
 	UpdatedAt   time.Time         `json:"updated_at"`
 }

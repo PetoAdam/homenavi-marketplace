@@ -33,6 +33,7 @@ func NewWithVerifier(cfg config.Config, pool *pgxpool.Pool, verifier handlers.OI
 		r.Post("/publish-oidc", h.PublishOIDC)
 		r.Get("/{id}", h.Get)
 		r.Get("/{id}/versions", h.Versions)
+		r.Post("/{id}/downloads", h.IncrementDownloads)
 	})
 
 	return r
