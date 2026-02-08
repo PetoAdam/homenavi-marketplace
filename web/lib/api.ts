@@ -15,7 +15,21 @@ export type Integration = {
   latest: boolean;
 };
 
-const getApiBase = () => (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/+$/, '');
+const getApiBase = () => {
+  const publicBase = (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/+$/, '');
+  const internalBase = (process.env.INTERNAL_API_BASE || '').replace(/\/+$/, '');
+
+  if (typeof window === 'undefined') {
+    if (internalBase) {
+      return internalBase;
+    }
+    if (publicBase.startsWith('http://') || publicBase.startsWith('https://')) {
+      return publicBase;
+    }
+  }
+
+  return publicBase;
+};
 
 class MarketplaceApi {
   private readonly baseUrl: string;
