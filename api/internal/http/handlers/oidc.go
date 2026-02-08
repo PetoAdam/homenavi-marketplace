@@ -84,7 +84,10 @@ func (v *GitHubOIDCVerifier) Verify(ctx context.Context, token string) (OIDCClai
 		}
 		return key, nil
 	})
-	if err != nil || parsed == nil || !parsed.Valid {
+	if err != nil {
+		return claims, fmt.Errorf("invalid oidc token: %w", err)
+	}
+	if parsed == nil || !parsed.Valid {
 		return claims, errors.New("invalid oidc token")
 	}
 

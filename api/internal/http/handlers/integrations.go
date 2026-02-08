@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -89,17 +90,20 @@ func (h IntegrationsHandler) PublishOIDC(w http.ResponseWriter, r *http.Request)
 
 	token, err := bearerToken(r)
 	if err != nil {
+		log.Printf("publish-oidc unauthorized: %v", err)
 		writeError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	claims, err := h.OIDCVerifier.Verify(r.Context(), token)
 	if err != nil {
+		log.Printf("publish-oidc invalid token: %v", err)
 		writeError(w, http.StatusUnauthorized, "invalid oidc token")
 		return
 	}
 
 	if err := h.OIDCVerifier.VerifyWorkflow(r.Context(), claims); err != nil {
+		log.Printf("publish-oidc verify workflow failed: %v", err)
 		writeError(w, http.StatusForbidden, err.Error())
 		return
 	}
