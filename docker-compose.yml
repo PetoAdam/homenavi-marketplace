@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: homenavi_marketplace
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5434:5432"
+    volumes:
+      - marketplace-db:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: ./api
+    environment:
+      BIND_ADDRESS: :8098
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/homenavi_marketplace?sslmode=disable
+      ALLOWED_ORIGINS: http://localhost:3010,https://marketplace.homenavi.org
+      OIDC_AUDIENCE: homenavi-marketplace
+      OIDC_VERIFY_WORKFLOW: verify.yml
+    depends_on:
+      - db
+
+  db-backup:
+    image: postgres:15-alpine
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: homenavi_marketplace
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_DIR: /backups
+      RETENTION_DAYS: 7
+      TZ: UTC
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup_db.sh:/usr/local/bin/backup_db.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      set -eu
+      echo "0 3 * * * /usr/local/bin/backup_db.sh" > /etc/crontabs/root
+      crond -f -l 8
+
+  web:
+    build:
+      context: ./web
+    environment:
+      NEXT_PUBLIC_API_BASE: /api
+    depends_on:
+      - api
+
+  nginx:
+    image: nginx:1.25-alpine
+    depends_on:
+      - web
+      - api
+    ports:
+      - "3010:80"
+    volumes:
+      - ./nginx/marketplace.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  marketplace-db:
