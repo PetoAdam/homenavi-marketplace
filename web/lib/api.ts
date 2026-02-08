@@ -15,7 +15,7 @@ export type Integration = {
   latest: boolean;
 };
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8098';
+const apiBase = process.env.NEXT_PUBLIC_API_BASE || '/api';
 
 export async function fetchIntegrations(): Promise<Integration[]> {
   try {
