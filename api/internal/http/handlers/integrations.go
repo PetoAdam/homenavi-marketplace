@@ -202,7 +202,7 @@ func validateOIDCRequest(req models.PublishRequest, claims OIDCClaims, tag strin
 	}
 
 	repoURL := normalizeRepoURL(req.RepoURL)
-	expectedRepoURL := "https://github.com/" + repo
+	expectedRepoURL := normalizeRepoURL("https://github.com/" + repo)
 	if repoURL == "" || repoURL != expectedRepoURL {
 		return errField("repo_url must match the GitHub repository")
 	}
@@ -215,11 +215,12 @@ func validateOIDCRequest(req models.PublishRequest, claims OIDCClaims, tag strin
 	return nil
 }
 
+
 func normalizeRepoURL(value string) string {
 	trimmed := strings.TrimSpace(value)
 	trimmed = strings.TrimSuffix(trimmed, ".git")
 	trimmed = strings.TrimSuffix(trimmed, "/")
-	return trimmed
+	return strings.ToLower(trimmed)
 }
 
 type errField string
