@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import IntegrationIcon from '../../../components/IntegrationIcon';
 import { marketplaceApi } from '../../../lib/api';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ export default async function IntegrationPage({ params }: PageProps) {
     notFound();
   }
 
-  const cover = integration.images?.[0] || integration.assets?.icon || '';
+  const cover = integration.assets?.icon || integration.images?.[0] || '';
   const versionLabel = formatVersion(integration.version);
 
   return (
@@ -44,13 +45,12 @@ export default async function IntegrationPage({ params }: PageProps) {
             </p>
           </div>
           <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-white/5">
-            {cover ? (
-              <img src={cover} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <div className="text-3xl text-white/60">
-                {integration.name.slice(0, 1).toUpperCase()}
-              </div>
-            )}
+            <IntegrationIcon
+              icon={cover}
+              fallback={integration.name}
+              className="h-10 w-10 text-white/80"
+              imageClassName="h-full w-full object-cover"
+            />
           </div>
         </header>
 

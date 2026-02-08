@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import type { Integration } from '../lib/api';
+import IntegrationIcon from './IntegrationIcon';
 
 type Props = {
   integration: Integration;
@@ -43,14 +44,8 @@ export default function IntegrationCard({ integration, index = 0 }: Props) {
             <span className="rounded-full bg-white/10 px-2 py-1">Version {versionLabel}</span>
           </div>
         </div>
-        <div className="h-12 w-12 overflow-hidden rounded-xl border border-white/10 bg-white/5">
-          {cover ? (
-            <img src={cover} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="h-full w-full text-center text-lg leading-[3rem] text-white/60">
-              {integration.name.slice(0, 1).toUpperCase()}
-            </div>
-          )}
+        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
+          <IntegrationIcon icon={cover} fallback={integration.name} />
         </div>
       </div>
       <p className="relative mt-4 line-clamp-3 text-sm text-white/70">
