@@ -264,7 +264,6 @@ func validateOIDCRequest(req models.PublishRequest, claims OIDCClaims, tag strin
 	return nil
 }
 
-
 func normalizeRepoURL(value string) string {
 	trimmed := strings.TrimSpace(value)
 	trimmed = strings.TrimSuffix(trimmed, ".git")
