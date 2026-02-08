@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from 'next/navigation';
+import { FaCheckCircle, FaDownload, FaStar, FaUsers } from 'react-icons/fa';
 import type { Integration } from '../lib/api';
 import IntegrationIcon from './IntegrationIcon';
 
@@ -66,15 +67,27 @@ export default function IntegrationCard({ integration, index = 0, variant = "def
       <div className="relative mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
         <span className="rounded-full bg-white/5 px-2 py-1">{integration.listen_path}</span>
         {integration.verified ? (
-          <span className="rounded-full bg-accent/20 px-2 py-1 text-accent">Verified</span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-accent/20 px-2 py-1 text-accent">
+            <FaCheckCircle className="text-[0.7rem]" />
+            Verified
+          </span>
         ) : (
-          <span className="rounded-full bg-white/10 px-2 py-1 text-white/60">Community</span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-2 py-1 text-white/60">
+            <FaUsers className="text-[0.7rem]" />
+            Community
+          </span>
         )}
       </div>
       <div className="relative mt-3 flex flex-wrap items-center gap-2 text-xs text-white/60">
-        <span className="rounded-full bg-white/5 px-2 py-1">{integration.downloads} downloads</span>
+        <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-2 py-1">
+          <FaDownload className="text-[0.7rem]" />
+          {integration.downloads} downloads
+        </span>
         {integration.featured ? (
-          <span className="rounded-full bg-accent/20 px-2 py-1 text-accent">Featured</span>
+          <span className="inline-flex items-center gap-2 rounded-full bg-accent/20 px-2 py-1 text-accent">
+            <FaStar className="text-[0.7rem]" />
+            Featured
+          </span>
         ) : null}
       </div>
       <div className="relative mt-4 flex flex-wrap items-center gap-3 text-xs">

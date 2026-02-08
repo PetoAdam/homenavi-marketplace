@@ -1,6 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import {
+  FaArrowDown,
+  FaCheckCircle,
+  FaCompass,
+  FaFire,
+  FaSearch,
+  FaSort,
+  FaStar,
+  FaThLarge,
+  FaUsers
+} from "react-icons/fa";
 import type { Integration } from "../lib/api";
 import IntegrationCard from "./IntegrationCard";
 
@@ -13,13 +24,6 @@ export default function MarketplaceClient({ integrations }: Props) {
   const [mode, setMode] = useState<"discover" | "trending" | "downloads">("discover");
   const [filter, setFilter] = useState<"all" | "featured" | "verified" | "community">("all");
   const [sort, setSort] = useState<"name" | "version" | "downloads" | "trending">("trending");
-
-  const stats = useMemo(() => {
-    const verified = integrations.filter((item) => item.verified).length;
-    const community = integrations.length - verified;
-    const featured = integrations.filter((item) => item.featured).length;
-    return { total: integrations.length, verified, community, featured };
-  }, [integrations]);
 
   const featuredItems = useMemo(() => integrations.filter((item) => item.featured), [integrations]);
 
@@ -81,27 +85,14 @@ export default function MarketplaceClient({ integrations }: Props) {
                 : "text-white/60 hover:bg-white/5 hover:text-white"
             }`}
           >
-            {item === "downloads" ? "Most downloaded" : item}
+            <span className="flex items-center gap-2">
+              {item === "discover" ? <FaCompass className="text-[0.7rem]" /> : null}
+              {item === "trending" ? <FaFire className="text-[0.7rem]" /> : null}
+              {item === "downloads" ? <FaArrowDown className="text-[0.7rem]" /> : null}
+              {item === "downloads" ? "Most downloaded" : item}
+            </span>
           </button>
         ))}
-      </div>
-      <div className="grid gap-4 md:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
-          <div className="text-xs uppercase tracking-[0.3em] text-white/40">Total</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{stats.total}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
-          <div className="text-xs uppercase tracking-[0.3em] text-white/40">Verified</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{stats.verified}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
-          <div className="text-xs uppercase tracking-[0.3em] text-white/40">Community</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{stats.community}</div>
-        </div>
-        <div className="rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
-          <div className="text-xs uppercase tracking-[0.3em] text-white/40">Featured</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{stats.featured}</div>
-        </div>
       </div>
 
       {featuredItems.length > 0 ? (
@@ -135,7 +126,7 @@ export default function MarketplaceClient({ integrations }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-panel/60 p-4 shadow-soft">
         <div className="flex flex-1 flex-wrap items-center gap-3">
           <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white/70">
-            <span className="text-sm">Search</span>
+            <FaSearch className="text-sm text-white/50" />
             <input
               className="w-full bg-transparent text-sm text-white placeholder:text-white/40 focus:outline-none"
               placeholder="Search by name, publisher, or id"
@@ -155,12 +146,19 @@ export default function MarketplaceClient({ integrations }: Props) {
                     : "border-white/10 text-white/60 hover:border-accent/50"
                 }`}
               >
-                {item}
+                <span className="flex items-center gap-2">
+                  {item === "all" ? <FaThLarge className="text-[0.7rem]" /> : null}
+                  {item === "featured" ? <FaStar className="text-[0.7rem]" /> : null}
+                  {item === "verified" ? <FaCheckCircle className="text-[0.7rem]" /> : null}
+                  {item === "community" ? <FaUsers className="text-[0.7rem]" /> : null}
+                  {item}
+                </span>
               </button>
             ))}
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <FaSort className="text-xs text-white/50" />
           <span className="text-xs uppercase tracking-[0.2em] text-white/40">Sort</span>
           <select
             className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80"

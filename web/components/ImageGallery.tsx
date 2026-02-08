@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { FaChevronLeft, FaChevronRight, FaImages, FaTimes } from "react-icons/fa";
 
 type Props = {
   images: string[];
@@ -38,7 +39,10 @@ export default function ImageGallery({ images }: Props) {
 
   return (
     <div className="rounded-2xl border border-white/10 bg-panel/60 p-6 shadow-soft">
-      <h2 className="text-lg font-semibold text-white">Gallery</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+        <FaImages className="text-white/60" />
+        Gallery
+      </h2>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {images.map((src, index) => (
           <button
@@ -58,9 +62,10 @@ export default function ImageGallery({ images }: Props) {
             <button
               type="button"
               onClick={() => setActiveIndex(null)}
-              className="absolute right-4 top-4 rounded-full border border-white/20 bg-black/60 px-3 py-1 text-xs uppercase tracking-[0.2em] text-white/80"
+              aria-label="Close"
+              className="absolute right-4 top-4 rounded-full border border-white/20 bg-black/60 p-2 text-white/80"
             >
-              Close
+              <FaTimes />
             </button>
             <div className="flex items-center justify-between gap-4">
               <button
@@ -68,9 +73,10 @@ export default function ImageGallery({ images }: Props) {
                 onClick={() =>
                   setActiveIndex((current) => (current === null ? 0 : (current - 1 + images.length) % images.length))
                 }
-                className="hidden rounded-full border border-white/20 bg-black/40 px-4 py-2 text-sm text-white/70 sm:block"
+                aria-label="Previous image"
+                className="hidden rounded-full border border-white/20 bg-black/40 p-3 text-white/70 sm:block"
               >
-                Prev
+                <FaChevronLeft />
               </button>
               <div className="flex-1 overflow-hidden rounded-3xl border border-white/10 bg-black/40">
                 <img src={images[activeIndex]} alt="" className="h-full w-full object-contain" />
@@ -80,9 +86,10 @@ export default function ImageGallery({ images }: Props) {
                 onClick={() =>
                   setActiveIndex((current) => (current === null ? 0 : (current + 1) % images.length))
                 }
-                className="hidden rounded-full border border-white/20 bg-black/40 px-4 py-2 text-sm text-white/70 sm:block"
+                aria-label="Next image"
+                className="hidden rounded-full border border-white/20 bg-black/40 p-3 text-white/70 sm:block"
               >
-                Next
+                <FaChevronRight />
               </button>
             </div>
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/70">
