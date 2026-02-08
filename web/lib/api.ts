@@ -15,17 +15,34 @@ export type Integration = {
   latest: boolean;
 };
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE || '/api';
+const getApiBase = () => (process.env.NEXT_PUBLIC_API_BASE || '').replace(/\/+$/, '');
 
-export async function fetchIntegrations(): Promise<Integration[]> {
-  try {
-    const res = await fetch(`${apiBase}/api/integrations`, { cache: 'no-store' });
-    if (!res.ok) {
+class MarketplaceApi {
+  private readonly baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private buildUrl(path: string) {
+    if (this.baseUrl) {
+      return `${this.baseUrl}${path}`;
+    }
+    return `/api${path}`;
+  }
+
+  async listIntegrations(): Promise<Integration[]> {
+    try {
+      const res = await fetch(this.buildUrl('/integrations'), { cache: 'no-store' });
+      if (!res.ok) {
+        return [];
+      }
+      const data = await res.json();
+      return data.integrations || [];
+    } catch {
       return [];
     }
-    const data = await res.json();
-    return data.integrations || [];
-  } catch {
-    return [];
   }
 }
+
+export const marketplaceApi = new MarketplaceApi(getApiBase());

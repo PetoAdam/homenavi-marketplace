@@ -1,10 +1,10 @@
 import MarketplaceClient from '../components/MarketplaceClient';
-import { fetchIntegrations } from '../lib/api';
+import { marketplaceApi } from '../lib/api';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const integrations = await fetchIntegrations();
+  const integrations = await marketplaceApi.listIntegrations();
 
   return (
     <main className="min-h-screen px-8 py-12">

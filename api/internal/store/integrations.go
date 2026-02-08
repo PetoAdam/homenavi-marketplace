@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -90,6 +91,8 @@ func PublishIntegration(ctx context.Context, pool *pgxpool.Pool, req models.Publ
 		return nil, errors.New("listen_path is required")
 	}
 
+	log.Printf("store publish integration id=%q version=%q listen_path=%q verified=%t", req.ID, req.Version, req.ListenPath, verified)
+
 	if err := ensureListenPathAvailable(ctx, pool, req.ListenPath, req.ID); err != nil {
 		return nil, err
 	}
@@ -165,7 +168,12 @@ ON CONFLICT (id, version) DO UPDATE SET
 		return nil, err
 	}
 
-	return GetIntegration(ctx, pool, req.ID, req.Version)
+	item, err := GetIntegration(ctx, pool, req.ID, req.Version)
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("store publish persisted id=%q version=%q latest=%t verified=%t", item.ID, item.Version, item.Latest, item.Verified)
+	return item, nil
 }
 
 func ensureListenPathAvailable(ctx context.Context, pool *pgxpool.Pool, listenPath, id string) error {

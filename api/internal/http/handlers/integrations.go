@@ -79,6 +79,7 @@ func (h IntegrationsHandler) Publish(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "failed to publish integration")
 		return
 	}
+	log.Printf("publish stored integration id=%q version=%q latest=%t verified=%t", item.ID, item.Version, item.Latest, item.Verified)
 	writeJSON(w, http.StatusOK, item)
 }
 
@@ -150,6 +151,7 @@ func (h IntegrationsHandler) PublishOIDC(w http.ResponseWriter, r *http.Request)
 		writeError(w, http.StatusInternalServerError, "failed to publish integration")
 		return
 	}
+	log.Printf("publish-oidc stored integration id=%q version=%q latest=%t verified=%t", item.ID, item.Version, item.Latest, item.Verified)
 	writeJSON(w, http.StatusOK, item)
 }
 
