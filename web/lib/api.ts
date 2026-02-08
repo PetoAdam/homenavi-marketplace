@@ -57,6 +57,20 @@ class MarketplaceApi {
       return [];
     }
   }
+
+  async getIntegration(id: string, version?: string): Promise<Integration | null> {
+    try {
+      const encodedId = encodeURIComponent(id);
+      const query = version ? `?version=${encodeURIComponent(version)}` : '';
+      const res = await fetch(this.buildUrl(`/integrations/${encodedId}${query}`), { cache: 'no-store' });
+      if (!res.ok) {
+        return null;
+      }
+      return await res.json();
+    } catch {
+      return null;
+    }
+  }
 }
 
 export const marketplaceApi = new MarketplaceApi(getApiBase());

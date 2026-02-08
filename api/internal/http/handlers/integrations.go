@@ -76,6 +76,10 @@ func (h IntegrationsHandler) Publish(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusConflict, "listen_path already used")
 			return
 		}
+		if err == store.ErrNameInUse {
+			writeError(w, http.StatusConflict, "name already used")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "failed to publish integration")
 		return
 	}
@@ -146,6 +150,10 @@ func (h IntegrationsHandler) PublishOIDC(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		if err == store.ErrListenPathInUse {
 			writeError(w, http.StatusConflict, "listen_path already used")
+			return
+		}
+		if err == store.ErrNameInUse {
+			writeError(w, http.StatusConflict, "name already used")
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "failed to publish integration")

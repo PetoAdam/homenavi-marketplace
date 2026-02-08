@@ -1,3 +1,6 @@
+"use client";
+
+import { useRouter } from 'next/navigation';
 import type { Integration } from '../lib/api';
 
 type Props = {
@@ -6,19 +9,39 @@ type Props = {
 };
 
 export default function IntegrationCard({ integration, index = 0 }: Props) {
-  const cover = integration.images?.[0] || integration.assets?.icon || '';
+  const cover = integration.assets?.icon || integration.images?.[0] || '';
+  const router = useRouter();
+
+  const versionLabel = integration.version.startsWith('v')
+    ? integration.version.slice(1)
+    : integration.version;
+
+  const handleNavigate = () => {
+    router.push(`/integrations/${encodeURIComponent(integration.id)}`);
+  };
 
   return (
     <div
-      className="fade-up group relative overflow-hidden rounded-2xl border border-white/10 bg-panel/70 p-5 shadow-soft backdrop-blur transition-transform duration-300 hover:-translate-y-1"
+      className="fade-up group relative cursor-pointer overflow-hidden rounded-2xl border border-white/10 bg-panel/70 p-5 shadow-soft backdrop-blur transition-transform duration-300 hover:-translate-y-1"
       style={{ animationDelay: `${index * 60}ms` }}
+      role="button"
+      tabIndex={0}
+      onClick={handleNavigate}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleNavigate();
+        }
+      }}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
       <div className="relative flex items-start justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-white/40">{integration.publisher || 'Community'}</p>
           <h3 className="text-lg font-semibold text-white">{integration.name}</h3>
-          <p className="text-sm text-white/60">v{integration.version}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/60">
+            <span className="rounded-full bg-white/10 px-2 py-1">Version {versionLabel}</span>
+          </div>
         </div>
         <div className="h-12 w-12 overflow-hidden rounded-xl border border-white/10 bg-white/5">
           {cover ? (
@@ -48,6 +71,7 @@ export default function IntegrationCard({ integration, index = 0 }: Props) {
             href={integration.repo_url}
             target="_blank"
             rel="noreferrer"
+            onClick={(event) => event.stopPropagation()}
           >
             Repo
           </a>
@@ -57,6 +81,7 @@ export default function IntegrationCard({ integration, index = 0 }: Props) {
           href={integration.manifest_url}
           target="_blank"
           rel="noreferrer"
+          onClick={(event) => event.stopPropagation()}
         >
           Manifest
         </a>

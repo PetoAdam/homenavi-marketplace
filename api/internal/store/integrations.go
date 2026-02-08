@@ -12,6 +12,7 @@ import (
 )
 
 var ErrListenPathInUse = errors.New("listen_path already in use")
+var ErrNameInUse = errors.New("name already in use")
 
 func ListIntegrations(ctx context.Context, pool *pgxpool.Pool, latestOnly bool) ([]models.Integration, error) {
 	query := `
@@ -94,6 +95,9 @@ func PublishIntegration(ctx context.Context, pool *pgxpool.Pool, req models.Publ
 	log.Printf("store publish integration id=%q version=%q listen_path=%q verified=%t", req.ID, req.Version, req.ListenPath, verified)
 
 	if err := ensureListenPathAvailable(ctx, pool, req.ListenPath, req.ID); err != nil {
+		return nil, err
+	}
+	if err := ensureNameAvailable(ctx, pool, req.Name, req.ID); err != nil {
 		return nil, err
 	}
 
@@ -182,6 +186,16 @@ func ensureListenPathAvailable(ctx context.Context, pool *pgxpool.Pool, listenPa
 	scanErr := row.Scan(&existingID)
 	if scanErr == nil {
 		return ErrListenPathInUse
+	}
+	return nil
+}
+
+func ensureNameAvailable(ctx context.Context, pool *pgxpool.Pool, name, id string) error {
+	var existingID string
+	row := pool.QueryRow(ctx, "SELECT id FROM integrations WHERE name = $1 AND latest = true AND id <> $2", name, id)
+	scanErr := row.Scan(&existingID)
+	if scanErr == nil {
+		return ErrNameInUse
 	}
 	return nil
 }
