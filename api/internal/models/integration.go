@@ -13,6 +13,7 @@ type Integration struct {
 	Images      []string          `json:"images"`
 	Assets      map[string]string `json:"assets"`
 	ListenPath  string            `json:"listen_path"`
+	ComposeFile string            `json:"compose_file"`
 	RepoURL     string            `json:"repo_url,omitempty"`
 	ReleaseTag  string            `json:"release_tag,omitempty"`
 	Publisher   string            `json:"publisher,omitempty"`
@@ -36,6 +37,7 @@ type PublishRequest struct {
 	Images      []string          `json:"images"`
 	Assets      map[string]string `json:"assets"`
 	ListenPath  string            `json:"listen_path"`
+	ComposeFile string            `json:"compose_file"`
 	RepoURL     string            `json:"repo_url"`
 	ReleaseTag  string            `json:"release_tag"`
 	Publisher   string            `json:"publisher"`

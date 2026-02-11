@@ -18,7 +18,7 @@ var ErrNameInUse = errors.New("name already in use")
 func ListIntegrations(ctx context.Context, pool *pgxpool.Pool, latestOnly bool, sortBy string, featuredOnly bool) ([]models.Integration, error) {
 	query := `
 SELECT id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
-	   repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
+	   compose_file, repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
 FROM integrations`
 	clauses := []string{}
 	if latestOnly {
@@ -62,7 +62,7 @@ FROM integrations`
 func GetIntegration(ctx context.Context, pool *pgxpool.Pool, id string, version string) (*models.Integration, error) {
 	query := `
 SELECT id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
-	   repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
+	   compose_file, repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
 FROM integrations
 WHERE id = $1`
 	args := []any{id}
@@ -83,7 +83,7 @@ WHERE id = $1`
 func ListVersions(ctx context.Context, pool *pgxpool.Pool, id string) ([]models.Integration, error) {
 	query := `
 SELECT id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
-	   repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
+	   compose_file, repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
 FROM integrations
 WHERE id = $1
 ORDER BY created_at DESC`
@@ -135,7 +135,7 @@ SET downloads = downloads + 1,
 FROM stats
 WHERE id = $1 AND latest = true
 RETURNING id, name, version, description, manifest_url, manifest, image, images, assets, listen_path,
-          repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
+	      compose_file, repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured, created_at, updated_at
 `, id)
 
 	item, err := scanIntegration(row)
@@ -196,10 +196,10 @@ func PublishIntegration(ctx context.Context, pool *pgxpool.Pool, req models.Publ
 
 	_, err = tx.Exec(ctx, `
 INSERT INTO integrations (
-  id, version, name, description, manifest_url, manifest, image, images, assets, listen_path,
-  repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured
+	id, version, name, description, manifest_url, manifest, image, images, assets, listen_path,
+	compose_file, repo_url, release_tag, publisher, verified, latest, downloads, trending_score, featured
 ) VALUES (
-  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true,$15,$16,$17
+	$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,true,$15,$16,$17
 )
 ON CONFLICT (id, version) DO UPDATE SET
   name = EXCLUDED.name,
@@ -210,6 +210,7 @@ ON CONFLICT (id, version) DO UPDATE SET
   images = EXCLUDED.images,
   assets = EXCLUDED.assets,
   listen_path = EXCLUDED.listen_path,
+	compose_file = EXCLUDED.compose_file,
   repo_url = EXCLUDED.repo_url,
   release_tag = EXCLUDED.release_tag,
   publisher = EXCLUDED.publisher,
@@ -230,6 +231,7 @@ ON CONFLICT (id, version) DO UPDATE SET
 		imagesJSON,
 		assetsJSON,
 		req.ListenPath,
+		req.ComposeFile,
 		req.RepoURL,
 		req.ReleaseTag,
 		req.Publisher,
@@ -314,6 +316,7 @@ func scanIntegration(row rowScanner) (models.Integration, error) {
 		&imagesJSON,
 		&assetsJSON,
 		&item.ListenPath,
+		&item.ComposeFile,
 		&item.RepoURL,
 		&item.ReleaseTag,
 		&item.Publisher,

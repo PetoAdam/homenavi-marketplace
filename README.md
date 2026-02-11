@@ -90,6 +90,7 @@ Body:
   "images": ["https://.../hero.png"],
   "assets": {"icon": "https://.../icon.svg"},
   "listen_path": "/integrations/spotify",
+  "compose_file": "https://.../compose/docker-compose.integration.yml",
   "repo_url": "https://github.com/PetoAdam/homenavi-spotify",
   "release_tag": "v0.1.3",
   "publisher": "Homenavi"
@@ -99,6 +100,7 @@ Body:
 Validation:
 
 - `id`, `name`, `version`, `listen_path`, `manifest_url`, `image` are required.
+- `compose_file` is required (must be a URL to docker-compose.integration.yml, not dev).
 - `images` max 5.
 - `listen_path` must be unique across latest releases.
 - `version` and `release_tag` must match the Git tag.

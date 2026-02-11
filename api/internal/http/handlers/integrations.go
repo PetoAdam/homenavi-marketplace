@@ -2,14 +2,17 @@ package handlers
 
 import (
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/models"
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/store"
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"gopkg.in/yaml.v3"
 )
 
 type IntegrationsHandler struct {
@@ -186,6 +189,7 @@ func validatePublishRequest(req models.PublishRequest) error {
 	req.ListenPath = strings.TrimSpace(req.ListenPath)
 	req.ManifestURL = strings.TrimSpace(req.ManifestURL)
 	req.Image = strings.TrimSpace(req.Image)
+	req.ComposeFile = strings.TrimSpace(req.ComposeFile)
 	missing := make([]string, 0, 6)
 	if req.ID == "" {
 		missing = append(missing, "id")
@@ -205,13 +209,95 @@ func validatePublishRequest(req models.PublishRequest) error {
 	if req.Image == "" {
 		missing = append(missing, "image")
 	}
+	if req.ComposeFile == "" {
+		missing = append(missing, "compose_file")
+	}
 	if len(missing) > 0 {
 		return errField("missing required fields: " + strings.Join(missing, ", "))
 	}
 	if len(req.Images) > 5 {
 		return errField("images must be <= 5 items")
 	}
+	if !isIntegrationComposeFile(req.ComposeFile) {
+		return errField("compose_file must point to docker-compose.integration.yml")
+	}
+	if err := validateComposeFileURL(req.ComposeFile); err != nil {
+		return err
+	}
 	return nil
+}
+
+func validateComposeFileURL(composeFile string) error {
+	composeFile = strings.TrimSpace(composeFile)
+	if composeFile == "" {
+		return errField("compose_file is required")
+	}
+	if !strings.HasPrefix(composeFile, "http://") && !strings.HasPrefix(composeFile, "https://") {
+		return errField("compose_file must be a URL")
+	}
+	if !isIntegrationComposeFile(composeFile) {
+		return errField("compose_file must point to docker-compose.integration.yml")
+	}
+	client := &http.Client{Timeout: 6 * time.Second}
+	resp, err := client.Get(composeFile)
+	if err != nil {
+		return errField("failed to fetch compose_file")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return errField("compose_file fetch failed")
+	}
+	const maxComposeSize = 512 * 1024
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxComposeSize))
+	if err != nil {
+		return errField("failed to read compose_file")
+	}
+	content := strings.TrimSpace(string(body))
+	if content == "" {
+		return errField("compose_file returned empty content")
+	}
+	return validateComposeFileContent(content)
+}
+
+func validateComposeFileContent(composeYAML string) error {
+	if !strings.Contains(composeYAML, "INTEGRATIONS_ROOT") {
+		return errField("compose_file must reference INTEGRATIONS_ROOT")
+	}
+	if strings.Contains(composeYAML, "HOMENAVI_ROOT") {
+		return errField("compose_file must not reference HOMENAVI_ROOT")
+	}
+
+	type composeService struct {
+		Image string `yaml:"image"`
+	}
+	type composeFile struct {
+		Services map[string]composeService `yaml:"services"`
+	}
+
+	var cfg composeFile
+	if err := yaml.Unmarshal([]byte(composeYAML), &cfg); err != nil {
+		return errField("compose_file invalid")
+	}
+	if len(cfg.Services) == 0 {
+		return errField("compose_file must define services")
+	}
+	for name, svc := range cfg.Services {
+		if strings.TrimSpace(svc.Image) == "" {
+			return errField("compose_file missing image for service: " + name)
+		}
+	}
+	return nil
+}
+
+func isIntegrationComposeFile(path string) bool {
+	if path == "" {
+		return false
+	}
+	name := path
+	if idx := strings.LastIndex(name, "/"); idx >= 0 {
+		name = name[idx+1:]
+	}
+	return name == "docker-compose.integration.yml"
 }
 
 func bearerToken(r *http.Request) (string, error) {

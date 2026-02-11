@@ -10,7 +10,7 @@ func TestValidateOIDCRequest(t *testing.T) {
 		SHA:        "abc123",
 	}
 
-	req := testPublishRequest()
+	req := testPublishRequest(t)
 	req.Version = "v0.1.0"
 	req.ReleaseTag = "v0.1.0"
 	req.RepoURL = "https://github.com/PetoAdam/homenavi-spotify"
@@ -29,7 +29,7 @@ func TestValidateOIDCRequestRejectsRepoMismatch(t *testing.T) {
 		SHA:        "abc123",
 	}
 
-	req := testPublishRequest()
+	req := testPublishRequest(t)
 	req.Version = "v0.1.0"
 	req.ReleaseTag = "v0.1.0"
 	req.RepoURL = "https://github.com/PetoAdam/other-repo"

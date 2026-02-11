@@ -36,6 +36,15 @@ func TestPublishOIDCRequiresToken(t *testing.T) {
 	verifier := stubOIDCVerifier{}
 	h := server.NewWithVerifier(config.Config{}, pool, verifier)
 
+	composeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/compose/docker-compose.integration.yml" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte("services:\n  spotify:\n    image: ghcr.io/petoadam/homenavi-spotify:latest\n    volumes:\n      - ${INTEGRATIONS_ROOT}/integrations/secrets/spotify.secrets.json:/app/config/integration.secrets.json\n"))
+	}))
+	t.Cleanup(composeServer.Close)
+
 	reqBody := models.PublishRequest{
 		ID:          "spotify",
 		Name:        "Spotify",
@@ -47,6 +56,7 @@ func TestPublishOIDCRequiresToken(t *testing.T) {
 		Images:      []string{},
 		Assets:      map[string]string{},
 		ListenPath:  "/integrations/spotify",
+		ComposeFile: composeServer.URL + "/compose/docker-compose.integration.yml",
 	}
 	payload, _ := json.Marshal(reqBody)
 
@@ -71,6 +81,15 @@ func TestPublishOIDCAndList(t *testing.T) {
 	}}
 	h := server.NewWithVerifier(config.Config{OIDCTagPrefix: "v"}, pool, verifier)
 
+	composeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/compose/docker-compose.integration.yml" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		_, _ = w.Write([]byte("services:\n  spotify:\n    image: ghcr.io/petoadam/homenavi-spotify:latest\n    volumes:\n      - ${INTEGRATIONS_ROOT}/integrations/secrets/spotify.secrets.json:/app/config/integration.secrets.json\n"))
+	}))
+	t.Cleanup(composeServer.Close)
+
 	reqBody := models.PublishRequest{
 		ID:          "spotify",
 		Name:        "Spotify",
@@ -84,6 +103,7 @@ func TestPublishOIDCAndList(t *testing.T) {
 		ListenPath:  "/integrations/spotify",
 		RepoURL:     "https://github.com/PetoAdam/homenavi-spotify",
 		ReleaseTag:  "v0.1.0",
+		ComposeFile: composeServer.URL + "/compose/docker-compose.integration.yml",
 	}
 	payload, _ := json.Marshal(reqBody)
 
