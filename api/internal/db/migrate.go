@@ -2,32 +2,35 @@ package db
 
 import (
 	"context"
-	"embed"
-	"fmt"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
-//go:embed migrations/*.sql
-var migrationFiles embed.FS
-
-func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
-	entries, err := migrationFiles.ReadDir("migrations")
-	if err != nil {
+func Migrate(ctx context.Context, db *gorm.DB) error {
+	if err := db.WithContext(ctx).AutoMigrate(
+		&Integration{},
+		&IntegrationDownloadEvent{},
+	); err != nil {
 		return err
 	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		path := fmt.Sprintf("migrations/%s", entry.Name())
-		sqlBytes, err := migrationFiles.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		if _, err := pool.Exec(ctx, string(sqlBytes)); err != nil {
-			return fmt.Errorf("migration %s failed: %w", entry.Name(), err)
-		}
+
+	// GORM does not support partial unique indexes; use raw SQL for latest-only uniqueness.
+	if err := db.WithContext(ctx).Exec(`
+CREATE UNIQUE INDEX IF NOT EXISTS integrations_listen_path_latest_unique
+  ON integrations (listen_path)
+  WHERE latest = TRUE
+`).Error; err != nil {
+		return err
 	}
+
+	// Enforce name uniqueness for latest integrations (partial unique index).
+	if err := db.WithContext(ctx).Exec(`
+CREATE UNIQUE INDEX IF NOT EXISTS integrations_name_latest_unique
+  ON integrations (name)
+  WHERE latest = TRUE
+`).Error; err != nil {
+		return err
+	}
+
 	return nil
 }

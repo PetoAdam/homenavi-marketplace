@@ -17,17 +17,22 @@ import (
 func main() {
 	cfg := config.Load()
 
-	pool, err := db.Connect(cfg.DatabaseURL)
+	gormDB, err := db.Connect(cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("db connect failed: %v", err)
 	}
-	defer pool.Close()
+	defer func() {
+		sqlDB, err := gormDB.DB()
+		if err == nil {
+			_ = sqlDB.Close()
+		}
+	}()
 
-	if err := db.Migrate(context.Background(), pool); err != nil {
+	if err := db.Migrate(context.Background(), gormDB); err != nil {
 		log.Fatalf("db migrate failed: %v", err)
 	}
 
-	h := server.New(cfg, pool)
+	h := server.New(cfg, gormDB)
 
 	srv := &http.Server{
 		Addr:              cfg.BindAddress,

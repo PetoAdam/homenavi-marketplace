@@ -11,12 +11,12 @@ import (
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/models"
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/store"
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"gopkg.in/yaml.v3"
+	"gorm.io/gorm"
 )
 
 type IntegrationsHandler struct {
-	Pool          *pgxpool.Pool
+	DB            *gorm.DB
 	OIDCVerifier  OIDCVerifier
 	OIDCTagPrefix string
 }
@@ -28,7 +28,7 @@ func (h IntegrationsHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 	featuredOnly := strings.EqualFold(r.URL.Query().Get("featured"), "true")
 	sortBy := r.URL.Query().Get("sort")
-	items, err := store.ListIntegrations(r.Context(), h.Pool, latestOnly, sortBy, featuredOnly)
+	items, err := store.ListIntegrations(r.Context(), h.DB, latestOnly, sortBy, featuredOnly)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list integrations")
 		return
@@ -43,7 +43,7 @@ func (h IntegrationsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "missing id")
 		return
 	}
-	item, err := store.GetIntegration(r.Context(), h.Pool, id, version)
+	item, err := store.GetIntegration(r.Context(), h.DB, id, version)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "integration not found")
 		return
@@ -57,7 +57,7 @@ func (h IntegrationsHandler) Versions(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "missing id")
 		return
 	}
-	items, err := store.ListVersions(r.Context(), h.Pool, id)
+	items, err := store.ListVersions(r.Context(), h.DB, id)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list versions")
 		return
@@ -71,7 +71,7 @@ func (h IntegrationsHandler) IncrementDownloads(w http.ResponseWriter, r *http.R
 		writeError(w, http.StatusBadRequest, "missing id")
 		return
 	}
-	item, err := store.IncrementDownloads(r.Context(), h.Pool, id)
+	item, err := store.IncrementDownloads(r.Context(), h.DB, id)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "integration not found")
 		return
@@ -89,7 +89,7 @@ func (h IntegrationsHandler) Publish(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	item, err := store.PublishIntegration(r.Context(), h.Pool, req, true)
+	item, err := store.PublishIntegration(r.Context(), h.DB, req, true)
 	if err != nil {
 		if err == store.ErrListenPathInUse {
 			writeError(w, http.StatusConflict, "listen_path already used")
@@ -165,7 +165,7 @@ func (h IntegrationsHandler) PublishOIDC(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	item, err := store.PublishIntegration(r.Context(), h.Pool, req, true)
+	item, err := store.PublishIntegration(r.Context(), h.DB, req, true)
 	if err != nil {
 		if err == store.ErrListenPathInUse {
 			writeError(w, http.StatusConflict, "listen_path already used")

@@ -7,21 +7,21 @@ import (
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/http/handlers"
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/http/middleware"
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gorm.io/gorm"
 )
 
-func New(cfg config.Config, pool *pgxpool.Pool) http.Handler {
+func New(cfg config.Config, db *gorm.DB) http.Handler {
 	verifier := handlers.NewGitHubOIDCVerifier(cfg)
-	return NewWithVerifier(cfg, pool, verifier)
+	return NewWithVerifier(cfg, db, verifier)
 }
 
-func NewWithVerifier(cfg config.Config, pool *pgxpool.Pool, verifier handlers.OIDCVerifier) http.Handler {
+func NewWithVerifier(cfg config.Config, db *gorm.DB, verifier handlers.OIDCVerifier) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Logging)
 	r.Use(middleware.CORS{AllowedOrigins: cfg.AllowedOrigin}.Handler)
 
-	h := handlers.IntegrationsHandler{Pool: pool, OIDCVerifier: verifier, OIDCTagPrefix: cfg.OIDCTagPrefix}
+	h := handlers.IntegrationsHandler{DB: db, OIDCVerifier: verifier, OIDCTagPrefix: cfg.OIDCTagPrefix}
 
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/PetoAdam/homenavi-marketplace/api/internal/db"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"gorm.io/gorm"
 )
 
-func StartPostgres(t *testing.T) (*pgxpool.Pool, func()) {
+func StartPostgres(t *testing.T) (*gorm.DB, func()) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
@@ -41,18 +41,20 @@ func StartPostgres(t *testing.T) (*pgxpool.Pool, func()) {
 		t.Fatalf("connection string: %v", err)
 	}
 
-	var pool *pgxpool.Pool
+	var gormDB *gorm.DB
 	var lastErr error
 	for attempt := 0; attempt < 10; attempt++ {
-		pool, lastErr = db.Connect(conn)
+		gormDB, lastErr = db.Connect(conn)
 		if lastErr == nil {
-			pingErr := pool.Ping(ctx)
-			if pingErr == nil {
-				lastErr = nil
-				break
+			sqlDB, err := gormDB.DB()
+			if err == nil {
+				pingErr := sqlDB.PingContext(ctx)
+				if pingErr == nil {
+					lastErr = nil
+					break
+				}
+				lastErr = pingErr
 			}
-			pool.Close()
-			lastErr = pingErr
 		}
 		time.Sleep(500 * time.Millisecond)
 	}
@@ -61,16 +63,22 @@ func StartPostgres(t *testing.T) (*pgxpool.Pool, func()) {
 		t.Fatalf("db connect: %v", lastErr)
 	}
 
-	if err := db.Migrate(ctx, pool); err != nil {
-		pool.Close()
+	if err := db.Migrate(ctx, gormDB); err != nil {
+		sqlDB, _ := gormDB.DB()
+		if sqlDB != nil {
+			sqlDB.Close()
+		}
 		_ = container.Terminate(ctx)
 		t.Fatalf("db migrate: %v", err)
 	}
 
 	cleanup := func() {
-		pool.Close()
+		sqlDB, _ := gormDB.DB()
+		if sqlDB != nil {
+			sqlDB.Close()
+		}
 		_ = container.Terminate(ctx)
 	}
 
-	return pool, cleanup
+	return gormDB, cleanup
 }
