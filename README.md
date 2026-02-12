@@ -10,7 +10,7 @@ A fullstack marketplace for Homenavi integrations.
 ## Project layout
 
 ```
-api/   # Go REST API + migrations
+api/   # Go REST API
 web/   # Next.js marketplace UI
 ```
 
