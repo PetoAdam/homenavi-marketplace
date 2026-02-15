@@ -89,7 +89,7 @@ export default function MarketplaceClient({ integrations }: Props) {
               {item === "discover" ? <FaCompass className="text-[0.7rem]" /> : null}
               {item === "trending" ? <FaFire className="text-[0.7rem]" /> : null}
               {item === "downloads" ? <FaArrowDown className="text-[0.7rem]" /> : null}
-              {item === "downloads" ? "Most downloaded" : item}
+              {item === "downloads" ? "Downloads" : item}
             </span>
           </button>
         ))}
@@ -167,7 +167,7 @@ export default function MarketplaceClient({ integrations }: Props) {
           >
             <option value="name">Name</option>
             <option value="version">Version</option>
-            <option value="downloads">Most downloaded</option>
+            <option value="downloads">Downloads</option>
             <option value="trending">Trending</option>
           </select>
         </div>
