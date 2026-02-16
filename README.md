@@ -122,6 +122,13 @@ go test ./...
 2) CI runs tests and builds the image.
 3) CI requests a GitHub OIDC token and calls the marketplace publish endpoint with the release metadata.
 
+Recommended integration CI hardening:
+
+- Make `verify.yml` the primary quality gate (tests, `go vet`, `gosec`, Docker build, Trivy scan).
+- In `release.yml`, run `verify.yml` as a required stage before publish.
+- Keep central enforcement in `PetoAdam/homenavi/.github/actions/integration-release@main` (verify + `go vet` + `gosec`) so release checks cannot be bypassed by per-repo workflow edits.
+- Publish signed images with SBOM + provenance.
+
 The marketplace verifies the OIDC token and checks that the repository has a successful `verify.yml` workflow run for the tagged commit.
 
 ## Security notes
