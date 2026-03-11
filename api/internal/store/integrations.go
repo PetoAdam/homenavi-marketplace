@@ -148,10 +148,19 @@ func PublishIntegration(ctx context.Context, db *gorm.DB, req models.PublishRequ
 	if err != nil {
 		return nil, fmt.Errorf("assets json invalid: %w", err)
 	}
+	deploymentJSON, err := json.Marshal(req.Deployment)
+	if err != nil {
+		return nil, fmt.Errorf("deployment_artifacts json invalid: %w", err)
+	}
 
 	manifestData := datatypes.JSON(manifestJSON)
 	imagesData := datatypes.JSON(imagesJSON)
 	assetsData := datatypes.JSON(assetsJSON)
+	deploymentData := datatypes.JSON(deploymentJSON)
+	composeFile := strings.TrimSpace(req.ComposeFile)
+	if composeFile == "" {
+		composeFile = strings.TrimSpace(req.Deployment.Compose.File)
+	}
 
 	tx := db.WithContext(ctx).Begin()
 	if tx.Error != nil {
@@ -184,7 +193,8 @@ func PublishIntegration(ctx context.Context, db *gorm.DB, req models.PublishRequ
 		Images:        imagesData,
 		Assets:        assetsData,
 		ListenPath:    req.ListenPath,
-		ComposeFile:   req.ComposeFile,
+		ComposeFile:   composeFile,
+		Deployment:    deploymentData,
 		RepoURL:       req.RepoURL,
 		ReleaseTag:    req.ReleaseTag,
 		Publisher:     req.Publisher,
@@ -207,6 +217,7 @@ func PublishIntegration(ctx context.Context, db *gorm.DB, req models.PublishRequ
 			"assets",
 			"listen_path",
 			"compose_file",
+			"deployment",
 			"repo_url",
 			"release_tag",
 			"publisher",
@@ -298,6 +309,7 @@ func fromDBIntegration(row dbmodels.Integration) models.Integration {
 		Image:       row.Image,
 		ListenPath:  row.ListenPath,
 		ComposeFile: row.ComposeFile,
+		Deployment:  models.DeploymentArtifacts{},
 		RepoURL:     row.RepoURL,
 		ReleaseTag:  row.ReleaseTag,
 		Publisher:   row.Publisher,
@@ -317,6 +329,12 @@ func fromDBIntegration(row dbmodels.Integration) models.Integration {
 	}
 	if len(row.Assets) > 0 {
 		_ = json.Unmarshal(row.Assets, &item.Assets)
+	}
+	if len(row.Deployment) > 0 {
+		_ = json.Unmarshal(row.Deployment, &item.Deployment)
+	}
+	if strings.TrimSpace(item.Deployment.Compose.File) == "" && strings.TrimSpace(item.ComposeFile) != "" {
+		item.Deployment.Compose.File = strings.TrimSpace(item.ComposeFile)
 	}
 	return item
 }

@@ -190,6 +190,12 @@ func validatePublishRequest(req models.PublishRequest) error {
 	req.ManifestURL = strings.TrimSpace(req.ManifestURL)
 	req.Image = strings.TrimSpace(req.Image)
 	req.ComposeFile = strings.TrimSpace(req.ComposeFile)
+	req.Deployment.Compose.File = strings.TrimSpace(req.Deployment.Compose.File)
+	req.Deployment.Helm.ChartRef = strings.TrimSpace(req.Deployment.Helm.ChartRef)
+	req.Deployment.Helm.Version = strings.TrimSpace(req.Deployment.Helm.Version)
+	req.Deployment.K8sGenerated.Kind = strings.TrimSpace(req.Deployment.K8sGenerated.Kind)
+	req.Deployment.K8sGenerated.ChartRef = strings.TrimSpace(req.Deployment.K8sGenerated.ChartRef)
+	req.Deployment.K8sGenerated.Version = strings.TrimSpace(req.Deployment.K8sGenerated.Version)
 	missing := make([]string, 0, 6)
 	if req.ID == "" {
 		missing = append(missing, "id")
@@ -209,20 +215,23 @@ func validatePublishRequest(req models.PublishRequest) error {
 	if req.Image == "" {
 		missing = append(missing, "image")
 	}
-	if req.ComposeFile == "" {
-		missing = append(missing, "compose_file")
-	}
 	if len(missing) > 0 {
 		return errField("missing required fields: " + strings.Join(missing, ", "))
+	}
+	composeFile := firstNonEmpty(req.Deployment.Compose.File, req.ComposeFile)
+	if composeFile == "" && strings.TrimSpace(req.Deployment.Helm.ChartRef) == "" && strings.TrimSpace(req.Deployment.K8sGenerated.ChartRef) == "" {
+		return errField("deployment_artifacts must include compose.file, helm.chart_ref, or k8s_generated.chart_ref")
 	}
 	if len(req.Images) > 5 {
 		return errField("images must be <= 5 items")
 	}
-	if !isIntegrationComposeFile(req.ComposeFile) {
-		return errField("compose_file must point to docker-compose.integration.yml")
-	}
-	if err := validateComposeFileURL(req.ComposeFile); err != nil {
-		return err
+	if composeFile != "" {
+		if !isIntegrationComposeFile(composeFile) {
+			return errField("compose_file must point to docker-compose.integration.yml")
+		}
+		if err := validateComposeFileURL(composeFile); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -298,6 +307,15 @@ func isIntegrationComposeFile(path string) bool {
 		name = name[idx+1:]
 	}
 	return name == "docker-compose.integration.yml"
+}
+
+func firstNonEmpty(v ...string) string {
+	for _, item := range v {
+		if strings.TrimSpace(item) != "" {
+			return strings.TrimSpace(item)
+		}
+	}
+	return ""
 }
 
 func bearerToken(r *http.Request) (string, error) {

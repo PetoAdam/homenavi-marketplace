@@ -90,7 +90,15 @@ Body:
   "images": ["https://.../hero.png"],
   "assets": {"icon": "https://.../icon.svg"},
   "listen_path": "/integrations/spotify",
-  "compose_file": "https://.../compose/docker-compose.integration.yml",
+  "deployment_artifacts": {
+    "compose": {
+      "file": "https://.../compose/docker-compose.integration.yml"
+    },
+    "helm": {
+      "chart_ref": "oci://ghcr.io/petoadam/homenavi-spotify",
+      "version": "v0.1.3"
+    }
+  },
   "repo_url": "https://github.com/PetoAdam/homenavi-spotify",
   "release_tag": "v0.1.3",
   "publisher": "Homenavi"
@@ -100,12 +108,49 @@ Body:
 Validation:
 
 - `id`, `name`, `version`, `listen_path`, `manifest_url`, `image` are required.
-- `compose_file` is required (must be a URL to docker-compose.integration.yml, not dev).
+- At least one deployment artifact is required:
+  - `deployment_artifacts.compose.file`, or
+  - `deployment_artifacts.helm.chart_ref`, or
+  - `deployment_artifacts.k8s_generated.chart_ref`
+- If `deployment_artifacts.compose.file` is provided, it must point to `docker-compose.integration.yml`.
 - `images` max 5.
 - `listen_path` must be unique across latest releases.
 - `version` and `release_tag` must match the Git tag.
 - `repo_url` must match the GitHub repository from the OIDC token.
 - `manifest_url` must reference the same repository + tag.
+
+## Local Minikube Helm MVP
+
+Current MVP target is to run marketplace locally on Minikube via Helm, alongside the core Homenavi chart.
+
+Helm chart path in this repository:
+
+- `helm/homenavi-marketplace`
+
+Included chart scope:
+
+- `api` deployment + service
+- `web` deployment + service
+- `db` deployment + service + PVC
+- `nginx` gateway service (default on)
+
+Target install command (once chart is present):
+
+```bash
+helm upgrade --install homenavi-marketplace ./helm/homenavi-marketplace -n homenavi-marketplace --create-namespace
+```
+
+Recommended local checks:
+
+```bash
+kubectl -n homenavi-marketplace get pods
+kubectl -n homenavi-marketplace get svc
+kubectl -n homenavi-marketplace port-forward svc/homenavi-marketplace-api 8098:8098
+curl -fsS http://127.0.0.1:8098/api/health
+
+kubectl -n homenavi-marketplace port-forward svc/homenavi-marketplace 3010:80
+# open http://127.0.0.1:3010
+```
 
 ## Tests
 

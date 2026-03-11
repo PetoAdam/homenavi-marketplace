@@ -28,7 +28,7 @@ func newComposeServer(t *testing.T, composeYAML string) string {
 
 func testPublishRequest(t *testing.T) models.PublishRequest {
 	composeURL := newComposeServer(t, testComposeYAML())
-	return models.PublishRequest{
+	req := models.PublishRequest{
 		ID:          "spotify",
 		Name:        "Spotify",
 		Version:     "v0.1.0",
@@ -41,4 +41,6 @@ func testPublishRequest(t *testing.T) models.PublishRequest {
 		ListenPath:  "/integrations/spotify",
 		ComposeFile: composeURL,
 	}
+	req.Deployment.Compose.File = composeURL
+	return req
 }

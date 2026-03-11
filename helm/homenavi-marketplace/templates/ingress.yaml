@@ -1,0 +1,27 @@
+{{- if and .Values.nginx.enabled .Values.nginx.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "homenavi-marketplace.fullname" . }}
+  labels:
+    {{- include "homenavi-marketplace.labels" . | nindent 4 }}
+  {{- with .Values.nginx.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.nginx.ingress.className }}
+  ingressClassName: {{ .Values.nginx.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.nginx.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ .Values.nginx.ingress.path }}
+            pathType: {{ .Values.nginx.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "homenavi-marketplace.fullname" . }}
+                port:
+                  number: {{ .Values.nginx.service.port }}
+{{- end }}

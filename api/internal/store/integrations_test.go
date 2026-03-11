@@ -29,6 +29,9 @@ func TestPublishIntegrationAndLatest(t *testing.T) {
 		ReleaseTag:  "v0.1.0",
 		Publisher:   "Homenavi",
 	}
+	baseReq.Deployment.Compose.File = baseReq.ComposeFile
+	baseReq.Deployment.Helm.ChartRef = "oci://ghcr.io/petoadam/homenavi-spotify"
+	baseReq.Deployment.Helm.Version = "v0.1.0"
 
 	item, err := PublishIntegration(ctx, pool, baseReq, true)
 	if err != nil {
@@ -40,6 +43,7 @@ func TestPublishIntegrationAndLatest(t *testing.T) {
 
 	baseReq.Version = "v0.2.0"
 	baseReq.ReleaseTag = "v0.2.0"
+	baseReq.Deployment.Helm.Version = "v0.2.0"
 	item2, err := PublishIntegration(ctx, pool, baseReq, true)
 	if err != nil {
 		t.Fatalf("publish v0.2.0: %v", err)
@@ -54,6 +58,9 @@ func TestPublishIntegrationAndLatest(t *testing.T) {
 	}
 	if latest.Version != "v0.2.0" {
 		t.Fatalf("expected latest version v0.2.0, got %s", latest.Version)
+	}
+	if latest.Deployment.Helm.ChartRef == "" {
+		t.Fatalf("expected deployment helm chart_ref to be persisted")
 	}
 
 	versions, err := ListVersions(ctx, pool, "spotify")
@@ -86,6 +93,7 @@ func TestListenPathUnique(t *testing.T) {
 		ReleaseTag:  "v0.1.0",
 		Publisher:   "Homenavi",
 	}
+	req.Deployment.Compose.File = req.ComposeFile
 
 	if _, err := PublishIntegration(ctx, pool, req, true); err != nil {
 		t.Fatalf("publish initial: %v", err)

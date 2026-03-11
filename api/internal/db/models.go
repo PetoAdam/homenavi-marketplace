@@ -18,6 +18,7 @@ type Integration struct {
 	Assets        datatypes.JSON
 	ListenPath    string `gorm:"index"`
 	ComposeFile   string
+	Deployment    datatypes.JSON
 	RepoURL       string
 	ReleaseTag    string
 	Publisher     string

@@ -1,0 +1,64 @@
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullPolicy: IfNotPresent
+
+database:
+  image:
+    repository: postgres
+    tag: 15-alpine
+  service:
+    port: 5432
+  auth:
+    database: homenavi_marketplace
+    username: postgres
+    password: postgres
+  persistence:
+    enabled: true
+    size: 8Gi
+    storageClassName: ""
+
+api:
+  image:
+    repository: ghcr.io/petoadam/homenavi-marketplace-api
+    tag: latest
+  replicas: 1
+  service:
+    port: 8098
+  env:
+    BIND_ADDRESS: ":8098"
+    ALLOWED_ORIGINS: "http://localhost:3010,https://marketplace.homenavi.org"
+    OIDC_AUDIENCE: "homenavi-marketplace"
+    OIDC_VERIFY_WORKFLOW: "verify.yml"
+  extraEnv: []
+
+web:
+  image:
+    repository: ghcr.io/petoadam/homenavi-marketplace-web
+    tag: latest
+  replicas: 1
+  service:
+    port: 3000
+  env:
+    INTERNAL_API_BASE: "http://homenavi-marketplace-api:8098"
+    NEXT_PUBLIC_API_BASE: "/api"
+  extraEnv: []
+
+nginx:
+  enabled: true
+  image:
+    repository: nginx
+    tag: 1.25-alpine
+  replicas: 1
+  service:
+    type: ClusterIP
+    port: 80
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    host: marketplace.local
+    path: /
+    pathType: Prefix
+
+resources: {}
