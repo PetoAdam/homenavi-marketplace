@@ -25,12 +25,15 @@ spec:
             - name: postgres
               containerPort: {{ .Values.database.service.port }}
               protocol: TCP
+          env:
+            - name: PGDATA
+              value: /mnt/db-data/data
           envFrom:
             - secretRef:
                 name: {{ include "homenavi-marketplace.fullname" . }}-db
           volumeMounts:
             - name: db-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /mnt/db-data
       volumes:
         - name: db-data
           {{- if .Values.database.persistence.enabled }}
