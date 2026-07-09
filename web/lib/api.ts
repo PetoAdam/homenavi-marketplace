@@ -42,10 +42,12 @@ class MarketplaceApi {
   }
 
   private buildUrl(path: string) {
+    const apiPath = path.startsWith('/api/') ? path : `/api${path}`;
+
     if (this.baseUrl) {
-      return `${this.baseUrl}${path}`;
+      return `${this.baseUrl}${apiPath}`;
     }
-    return `/api${path}`;
+    return apiPath;
   }
 
   async listIntegrations(): Promise<Integration[]> {
