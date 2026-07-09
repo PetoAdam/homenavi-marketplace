@@ -9,18 +9,24 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "14.2.35",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-icons": "5.2.1"
+    "next": "16.2.6",
+    "picomatch": "4.0.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-icons": "5.2.1",
+    "sigstore": "4.1.1"
   },
   "devDependencies": {
     "@types/node": "20.14.12",
-    "@types/react": "18.2.66",
-    "@types/react-dom": "18.2.22",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
     "autoprefixer": "10.4.19",
     "postcss": "8.4.38",
     "tailwindcss": "3.4.10",
     "typescript": "5.5.4"
+  },
+  "overrides": {
+    "picomatch": "4.0.4",
+    "sigstore": "4.1.1"
   }
 }

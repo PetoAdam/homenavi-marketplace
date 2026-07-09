@@ -21,7 +21,7 @@ database:
 api:
   image:
     repository: ghcr.io/petoadam/homenavi-marketplace-api
-    tag: latest
+    tag: v0.1.0
   replicas: 1
   service:
     port: 8098
@@ -35,7 +35,7 @@ api:
 web:
   image:
     repository: ghcr.io/petoadam/homenavi-marketplace-web
-    tag: latest
+    tag: v0.1.0
   replicas: 1
   service:
     port: 3000

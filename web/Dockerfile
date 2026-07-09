@@ -1,20 +1,21 @@
-FROM node:20-alpine AS deps
+FROM node:24-alpine3.22 AS deps
 WORKDIR /app
 COPY package.json ./
 RUN npm install
 
-FROM node:20-alpine AS build
+FROM node:24-alpine3.22 AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . ./
 RUN npm run build
 
-FROM node:20-alpine
+FROM cgr.dev/chainguard/node:latest
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=build /app/.next ./.next
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
-COPY --from=build /app/node_modules ./node_modules
-COPY --from=build /app/package.json ./package.json
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["server.js"]
