@@ -7,15 +7,16 @@ import { marketplaceApi } from '../../../lib/api';
 export const dynamic = 'force-dynamic';
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 const formatVersion = (version: string) => (version.startsWith('v') ? version.slice(1) : version);
 
 export default async function IntegrationPage({ params }: PageProps) {
-  const integration = await marketplaceApi.getIntegration(params.id);
+  const { id } = await params;
+  const integration = await marketplaceApi.getIntegration(id);
 
   if (!integration) {
     notFound();
