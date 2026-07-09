@@ -25,9 +25,12 @@ spec:
             - /bin/sh
             - -c
             - |
-              if [ -d /var/lib/postgresql/data ]; then
-                find /var/lib/postgresql/data -mindepth 1 -delete
-              fi
+               if [ ! -f /var/lib/postgresql/data/PG_VERSION ]; then
+                 # Only clean on first initialization, not on pod restarts
+                 if [ -d /var/lib/postgresql/data ]; then
+                   find /var/lib/postgresql/data -mindepth 1 -delete
+                 fi
+               fi
           volumeMounts:
             - name: db-data
               mountPath: /var/lib/postgresql/data
