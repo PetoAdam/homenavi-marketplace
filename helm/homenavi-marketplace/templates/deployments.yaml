@@ -17,6 +17,20 @@ spec:
         {{- include "homenavi-marketplace.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: db
     spec:
+      initContainers:
+        - name: clean-data-dir
+          image: {{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              if [ -d /var/lib/postgresql/data ]; then
+                find /var/lib/postgresql/data -mindepth 1 -delete
+              fi
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
       containers:
         - name: db
           image: {{ .Values.database.image.repository }}:{{ .Values.database.image.tag }}
@@ -25,15 +39,12 @@ spec:
             - name: postgres
               containerPort: {{ .Values.database.service.port }}
               protocol: TCP
-          env:
-            - name: PGDATA
-              value: /mnt/db-data/data
           envFrom:
             - secretRef:
                 name: {{ include "homenavi-marketplace.fullname" . }}-db
           volumeMounts:
             - name: db-data
-              mountPath: /mnt/db-data
+              mountPath: /var/lib/postgresql/data
       volumes:
         - name: db-data
           {{- if .Values.database.persistence.enabled }}
