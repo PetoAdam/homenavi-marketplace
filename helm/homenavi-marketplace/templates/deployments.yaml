@@ -91,7 +91,12 @@ spec:
             {{- end }}
             {{- range .Values.api.extraEnv }}
             - name: {{ .name }}
+              {{- if hasKey . "valueFrom" }}
+              valueFrom:
+                {{- toYaml .valueFrom | nindent 16 }}
+              {{- else }}
               value: {{ .value | quote }}
+              {{- end }}
             {{- end }}
           envFrom:
             - secretRef:
